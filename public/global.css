@@ -756,7 +756,7 @@ footer {
   text-align: center;
   padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 1.25);
   margin-top: auto;
-  font-size: 1rem;
+  font-size: 0.8rem;
   border-top: 1px solid var(--border-color);
   box-shadow: var(--shadow-medium);
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
