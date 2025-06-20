@@ -71,7 +71,7 @@ const ogImageFullUrl = new URL('/og-image.jpg', url).href;
     <slot />
 
     <footer>
-      <p>&copy; {new Date().getFullYear()} {siteName}. All rights reserved.</p>
+      <p>&copy; {new Date().getFullYear()} <a href={siteUrl}>{siteName}</a>. All rights reserved.</p>
     </footer>
 
     {/* --- Crucial JavaScript for Clean Search URLs --- */}
