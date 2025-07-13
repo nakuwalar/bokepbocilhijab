@@ -1,8 +1,7 @@
-// src/pages/video-sitemap.xml.ts
 import type { APIRoute } from 'astro';
 import { slugify } from '../utils/slugify';
 import { getAllVideos, type VideoData } from '../utils/data';
-import { nama, terbit } from '../utils/site';
+import { terbit } from '../utils/site';
 
 export const GET: APIRoute = async ({ site }) => {
   if (!site) {
@@ -29,21 +28,33 @@ export const GET: APIRoute = async ({ site }) => {
       return;
     }
 
-    const videoDetailUrl = `${baseUrl}/${slugify(video.title)}-${video.id}/`;
+    const videoDetailUrl = `${baseUrl}/video/${video.id}/${slugify(video.title)}`;
     const thumbnailUrl = video.thumbnail;
     const embedUrl = video.embedUrl;
 
     const absoluteThumbnailUrl = thumbnailUrl && (thumbnailUrl.startsWith('http://') || thumbnailUrl.startsWith('https://')) ? thumbnailUrl : `${baseUrl}${thumbnailUrl}`;
     const absoluteEmbedUrl = embedUrl && (embedUrl.startsWith('http://') || embedUrl.startsWith('https://')) ? embedUrl : `${baseUrl}${embedUrl}`;
 
-    const durationInSeconds = parseDurationStringToSeconds(video.duration);
+    const duration = video.duration && typeof video.duration === 'number' ? Math.round(video.duration) : 126;
     const videoPublishedDate = video.datePublished || defaultPublishedDate;
     const videoModifiedDate = video.dateModified || videoPublishedDate;
 
-    const videoTitleForSitemap = video.title || 'Video';
-    const videoDescriptionForSitemap = `Video bokep viral ${videoTitleForSitemap} yang terbaru nonton streaming di link ${nama}`;
+    if (video.title && video.description && absoluteThumbnailUrl && absoluteEmbedUrl) {
+      let tagsHtml = '';
+      if (video.tags) {
+        let tagsToProcess: string[] = [];
+        if (Array.isArray(video.tags)) {
+          tagsToProcess = video.tags;
+        } else if (typeof video.tags === 'string') {
+          tagsToProcess = video.tags.split(',').map(tag => tag.trim());
+        }
 
-    if (videoTitleForSitemap && videoDescriptionForSitemap && absoluteThumbnailUrl && absoluteEmbedUrl) {
+        tagsHtml = tagsToProcess
+          .filter(tag => tag.length > 0)
+          .map(tag => `<video:tag>${escapeXml(tag)}</video:tag>`)
+          .join('\n            ');
+      }
+
       videoEntries.push(`
         <url>
           <loc>${videoDetailUrl}</loc>
@@ -52,16 +63,18 @@ export const GET: APIRoute = async ({ site }) => {
           <priority>0.8</priority>
           <video:video>
             <video:thumbnail_loc>${absoluteThumbnailUrl}</video:thumbnail_loc>
-            <video:title>${escapeXml(videoTitleForSitemap)}</video:title>
-            <video:description>${escapeXml(videoDescriptionForSitemap)}</video:description>
+            <video:title>${escapeXml(video.title)}</video:title>
+            <video:description>${escapeXml(video.description)}</video:description>
             <video:content_loc>${absoluteEmbedUrl}</video:content_loc>
-            <video:duration>${durationInSeconds}</video:duration>
+            <video:duration>${duration}</video:duration>
             <video:publication_date>${videoPublishedDate}</video:publication_date>
-            </video:video>
+            ${tagsHtml}
+            ${video.category ? `<video:category>${escapeXml(video.category)}</video:category>` : ''}
+          </video:video>
         </url>
       `);
     } else {
-      console.warn(`Melewatkan video untuk sitemap karena data wajib hilang: ID ${video.id || 'N/A'} (Deskripsi: ${videoDescriptionForSitemap})`);
+      console.warn(`Melewatkan video untuk sitemap karena data wajib hilang: ID ${video.id || 'N/A'}`);
     }
   });
 
@@ -79,47 +92,16 @@ export const GET: APIRoute = async ({ site }) => {
 };
 
 /**
- * Mengurai string durasi (misal: "120", "1:30", "01:30") menjadi jumlah detik.
- * Mengembalikan 26 jika tidak dapat diurai.
- * @param durationString String durasi dari data video.
- * @returns Durasi dalam detik (number).
+ * Meng-escape karakter khusus XML dan membersihkan entitas HTML/XML yang tidak lengkap.
+ *
+ * @param unsafe String yang perlu di-escape.
+ * @returns String yang aman untuk XML.
  */
-function parseDurationStringToSeconds(durationString: string | undefined): number {
-    if (!durationString) {
-        return 26;
-    }
-
-    const num = parseInt(durationString, 10);
-    if (!isNaN(num)) {
-        return num;
-    }
-
-    const parts = durationString.split(':');
-    if (parts.length === 2) {
-        const minutes = parseInt(parts[0], 10);
-        const seconds = parseInt(parts[1], 10);
-        if (!isNaN(minutes) && !isNaN(seconds)) {
-            return (minutes * 60) + seconds;
-        }
-    }
-
-    if (parts.length === 3) {
-        const hours = parseInt(parts[0], 10);
-        const minutes = parseInt(parts[1], 10);
-        const seconds = parseInt(parts[2], 10);
-        if (!isNaN(hours) && !isNaN(minutes) && !isNaN(seconds)) {
-            return (hours * 3600) + (minutes * 60) + seconds;
-        }
-    }
-
-    return 26;
-}
-
-
 function escapeXml(unsafe: string | null | undefined): string {
   if (!unsafe) return '';
 
   let cleaned = unsafe;
+
   cleaned = cleaned.replace(/&(?!#?\w+;)/g, '&amp;');
 
   return cleaned.replace(/[<>"']/g, function (c) {

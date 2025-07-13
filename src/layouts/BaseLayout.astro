@@ -45,7 +45,7 @@ const websiteSchema = {
         "@type": "SearchAction",
         "target": {
             "@type": "EntryPoint",
-            "urlTemplate": `${url}/video/{query}/1`
+            "urlTemplate": `${url}/video/{query}/`
         },
         "query-input": "required name=query"
     }
@@ -109,22 +109,22 @@ const combinedJsonLdSchemas = [
         <header>
             <nav class="main-nav">
                 <a href={url} class="logo" aria-label={`${nama} - Beranda`}>{nama}</a>
+                
+    <button id="openSearch">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    </button>
 
-                <button id="openSearch">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                </button>
-
-                <div id="mobileSearchOverlay" class="mobile-search-overlay">
-                    <button type="button" id="closeSearch" class="close-search-button" aria-label="Tutup pencarian">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                    <form id="mobileSearchForm" action="/video/" method="get" class="search-form-mobile" role="search">
-                        <input type="search" name="query" placeholder="Cari video..." required autofocus />
-                        <button type="submit" aria-label="Mulai pencarian">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        </button>
-                    </form>
-                </div>
+    <div id="mobileSearchOverlay" class="mobile-search-overlay">
+        <form id="mobileSearchForm" action="/video/" method="get" class="search-form-mobile" role="search">
+            <input type="search" name="query" placeholder="Cari video..." required autofocus />
+            <button type="submit" aria-label="Mulai pencarian">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </button>
+            <button type="button" id="closeSearch" class="close-search-button" aria-label="Tutup pencarian">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </form>
+    </div>
                 <form id="desktopSearchForm" action="/video/" method="get" class="search-form-desktop" role="search">
                     <input type="search" name="query" placeholder="Cari video..." required />
                     <button type="submit" aria-label="Mulai pencarian">Cari</button>

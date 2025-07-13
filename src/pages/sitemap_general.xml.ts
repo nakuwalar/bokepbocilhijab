@@ -26,7 +26,7 @@ export const GET: APIRoute = async ({ site }) => {
   const categories = new Set(allVideos.map(video => video.category));
   categories.forEach(category => {
     const categorySlug = slugify(category);
-    urls.push(`<url><loc>${baseUrl}/category/${categorySlug}/</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>`);
+    urls.push(`<url><loc>${baseUrl}/category/${categorySlug}/1</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>`);
   });
 
   const sitemapContent = `<?xml version="1.0" encoding="UTF-8"?>

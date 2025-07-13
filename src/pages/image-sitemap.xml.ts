@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { slugify } from '../utils/slugify';
 import { getAllVideos, type VideoData } from '../utils/data';
-import { terbit, nama } from '../utils/site';
+import { terbit } from '../utils/site';
 
 export const GET: APIRoute = async ({ site }) => {
   if (!site) {
@@ -40,15 +40,12 @@ export const GET: APIRoute = async ({ site }) => {
       return;
     }
 
-    const videoDetailUrl = `${baseUrl}/${slugify(video.title)}-${video.id}/`;
+    const videoDetailUrl = `${baseUrl}/video/${video.id}/${slugify(video.title)}`;
     const thumbnailUrl = video.thumbnail;
 
     const absoluteThumbnailUrl = thumbnailUrl && (thumbnailUrl.startsWith('http://') || thumbnailUrl.startsWith('https://'))
       ? thumbnailUrl
       : `${baseUrl}${thumbnailUrl}`;
-
-    const imageCaptionDescription = `Video bokep viral ${video.title} yang terbaru kategori ${video.category} nonton streaming di link ${nama}`;
-
 
     if (absoluteThumbnailUrl && videoDetailUrl) {
       const videoLastMod = video.dateModified || video.datePublished || defaultPublishedDate;
@@ -59,7 +56,7 @@ export const GET: APIRoute = async ({ site }) => {
           <lastmod>${videoLastMod}</lastmod>
           <image:image>
             <image:loc>${absoluteThumbnailUrl}</image:loc>
-            <image:caption>${escapeXml(imageCaptionDescription)}</image:caption>
+            <image:caption>${escapeXml(video.description || video.title)}</image:caption>
             <image:title>${escapeXml(video.title)}</image:title>
           </image:image>
         </url>

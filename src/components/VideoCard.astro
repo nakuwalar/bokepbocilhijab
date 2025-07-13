@@ -13,6 +13,8 @@ const { video, headingLevel = 'h2' } = Astro.props;
 const videoSlug = slugify(video.title);
 
 const videoDetailPath = `${url}/${videoSlug}-${video.id}/`;
+
+const placeholderImage = `${url}/placeholder.png`;
 ---
 
 <a href={videoDetailPath} class="video-card">
@@ -25,6 +27,7 @@ const videoDetailPath = `${url}/${videoSlug}-${video.id}/`;
       height={video.thumbnailHeight}
       loading="lazy"
       class="video-thumbnail"
+      onerror={`this.onerror=null; this.src='${placeholderImage}';`}
     />
     {video.previewUrl && (
 
@@ -34,6 +37,7 @@ const videoDetailPath = `${url}/${videoSlug}-${video.id}/`;
         muted
         class="video-preview"
         data-src={video.previewUrl}
+        onerror="this.closest('.video-card').classList.add('video-preview-error');"
       >
       </video>
     )}
