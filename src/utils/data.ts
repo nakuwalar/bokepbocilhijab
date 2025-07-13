@@ -1,5 +1,5 @@
 // src/utils/data.ts
-import videosData from '../data/videos.json';
+import rawAllVideos from '../data/allVideos';
 
 export interface VideoData {
   id: string;
