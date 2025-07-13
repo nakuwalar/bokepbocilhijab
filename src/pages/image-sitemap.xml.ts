@@ -40,7 +40,7 @@ export const GET: APIRoute = async ({ site }) => {
       return;
     }
 
-    const videoDetailUrl = `${baseUrl}/video/${video.id}/${slugify(video.title)}`;
+    const videoDetailUrl = `${baseUrl}/${slugify(video.title)}-${video.id}/`;
     const thumbnailUrl = video.thumbnail;
 
     const absoluteThumbnailUrl = thumbnailUrl && (thumbnailUrl.startsWith('http://') || thumbnailUrl.startsWith('https://'))
