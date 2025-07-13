@@ -4,7 +4,6 @@ import Layout from '../../layouts/BaseLayout.astro';
 import { getAllVideos, type VideoData } from '../../utils/data.ts';
 import { slugify } from '../../utils/slugify.ts';
 import { desk, nama, url } from '../../utils/site';
-
 export const prerender = true;
 
 const allVideos: VideoData[] = await getAllVideos();
@@ -73,12 +72,6 @@ const paginatedTags = sortedTags.slice(
 );
 // --- AKHIR LOGIKA PAGINASI BARU ---
 
-// Define pagination URLs for index.astro
-const baseCategoryUrl = `${url}/tags`;
-// Previous link won't show on page 1, so no need for prevPageUrl here.
-const nextPageUrl = `${baseCategoryUrl}/${currentPage + 1}`;
-
-
 const breadcrumbs = [
     { name: 'Home', url: `${url}` },
     { name: 'Semua Tags' },
@@ -116,7 +109,7 @@ const schemaWebPage = {
     }
 };
 
-const pageKeywords = `tags video, daftar tags, ${nama} tags, topik video, genre video, ${paginatedTags.slice(0, 7).join(', ')}`;
+const pageKeywords = `tags video, daftar tags, ${nama} tags, topik video, genre video, ${paginatedTags.slice(0, 5).join(', ')}${paginatedTags.length > 5 ? ', dll.' : ''}`;
 
 ---
 
@@ -167,40 +160,37 @@ const pageKeywords = `tags video, daftar tags, ${nama} tags, topik video, genre 
 
         {/* --- KOMPONEN PAGINASI BARU --- */}
         {totalPages > 1 && (
-            <nav class="pagination" aria-label="Navigasi Page Kategori">
-                {/* No "Previous" link on the first page (currentPage is always 1 here) */}
-                
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(p =>
-                        // Always show first and last page
-                        p === 1 || p === totalPages || 
-                        // Show 2 pages before and 2 pages after current page
-                        (p >= currentPage - 2 && p <= currentPage + 2)
-                    )
-                    .map((pageNumber, index, array) => (
-                        <>
-                            {/* Render ellipsis if there's a gap between the current page number and the previous one in the filtered array */}
-                            {pageNumber > 1 && array[index - 1] && pageNumber - array[index - 1] > 1 && (
-                                <span class="pagination-link ellipsis" aria-hidden="true">...</span>
-                            )}
+            <nav class="pagination" aria-label="Tag Pagination">
+                <ul class="pagination-list">
+                    {/* Tautan untuk halaman sebelumnya (jika bukan halaman pertama) */}
+                    {currentPage > 1 && (
+                        <li class="pagination-item">
+                            <a href={`${url}/tags/${currentPage - 1 === 1 ? '' : currentPage - 1}`} class="pagination-link" aria-label="Previous Page">Sebelumnya</a> {/* <-- PERUBAHAN DI SINI: Jika halaman 1, link ke /tags/ */}
+                        </li>
+                    )}
+
+                    {/* Tautan nomor halaman */}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <li class="pagination-item">
                             <a
-                                href={pageNumber === 1 ? `${baseCategoryUrl}/` : `${baseCategoryUrl}/${pageNumber}`}
-                                class={`pagination-link ${pageNumber === currentPage ? 'active' : ''}`}
-                                aria-current={pageNumber === currentPage ? 'page' : undefined}
+                                href={`${url}/tags/${page === 1 ? '' : page}`}
+                                class={`pagination-link ${page === currentPage ? 'active' : ''}`}
+                                aria-current={page === currentPage ? 'page' : undefined}
                             >
-                                {pageNumber}
+                                {page}
                             </a>
-                        </>
+                        </li>
                     ))}
-                {/* Render ellipsis after the current set of pages if there's a gap before the last page */}
-                {/* This condition ensures ellipsis only appears if totalPages is large enough and we are not close to the end */}
-                {(currentPage + 2 < totalPages && totalPages > 5 && currentPage < totalPages - 2) && (
-                    <span class="pagination-link ellipsis" aria-hidden="true">...</span>
-                )}
-                {currentPage < totalPages && (
-                    <a href={nextPageUrl} class="pagination-link" rel="next">Berikutnya &raquo;</a>
-                )}
+
+                    {/* Tautan untuk halaman selanjutnya (jika bukan halaman terakhir) */}
+                    {currentPage < totalPages && (
+                        <li class="pagination-item">
+                            <a href={`${url}/tags/${currentPage + 1}`} class="pagination-link" aria-label="Next Page">Selanjutnya</a>
+                        </li>
+                    )}
+                </ul>
             </nav>
         )}
+        {/* --- AKHIR KOMPONEN PAGINASI BARU --- */}
     </main>
 </Layout>
