@@ -164,14 +164,11 @@ const pageKeywords = `tags video, daftar tags, ${nama} tags, topik video, genre 
                 <ul class="pagination-list">
                     {/* Tautan untuk halaman sebelumnya (jika bukan halaman pertama) */}
                     {currentPage > 1 && (
-                        <li class="pagination-item">
                             <a href={`${url}/tags/${currentPage - 1 === 1 ? '' : currentPage - 1}`} class="pagination-link" aria-label="Previous Page">Sebelumnya</a> {/* <-- PERUBAHAN DI SINI: Jika halaman 1, link ke /tags/ */}
-                        </li>
                     )}
 
                     {/* Tautan nomor halaman */}
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                        <li class="pagination-item">
                             <a
                                 href={`${url}/tags/${page === 1 ? '' : page}`}
                                 class={`pagination-link ${page === currentPage ? 'active' : ''}`}
@@ -179,14 +176,11 @@ const pageKeywords = `tags video, daftar tags, ${nama} tags, topik video, genre 
                             >
                                 {page}
                             </a>
-                        </li>
                     ))}
 
                     {/* Tautan untuk halaman selanjutnya (jika bukan halaman terakhir) */}
                     {currentPage < totalPages && (
-                        <li class="pagination-item">
                             <a href={`${url}/tags/${currentPage + 1}`} class="pagination-link" aria-label="Next Page">Selanjutnya</a>
-                        </li>
                     )}
                 </ul>
             </nav>
