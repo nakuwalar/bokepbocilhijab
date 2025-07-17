@@ -1,5 +1,3 @@
-// src/utils/processThumbnails.mjs
-
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,88 +36,138 @@ if (!YOUR_DOMAIN) {
     process.exit(1);
 }
 
-const PLACEHOLDER_THUMBNAIL_PATH = `${YOUR_DOMAIN}/placeholder.webp`;
 const DEFAULT_FALLBACK_WIDTH = 300;
 const DEFAULT_FALLBACK_HEIGHT = 168;
 const OPTIMIZED_THUMBNAIL_WIDTH = 300;
 
+const DOWNLOAD_TIMEOUT_MS = 100000;
+
+async function fetchWithTimeout(resource, options = {}) {
+    const { timeout = DOWNLOAD_TIMEOUT_MS } = options;
+
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+
+    try {
+        const response = await fetch(resource, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        throw error;
+    }
+}
+
 async function processThumbnails() {
     await fs.mkdir(optimizedThumbnailsDir, { recursive: true });
-
-    // --- Perubahan: Pastikan direktori output TS juga ada ---
     const outputTsDir = path.dirname(OUTPUT_TS_PATH);
     await fs.mkdir(outputTsDir, { recursive: true });
-    // --- AKHIR Perubahan ---
 
-    const processedVideos = [];
-
-    for (const video of videosData) {
+    const processingPromises = videosData.map(async (video) => {
         const videoSlug = slugify(video.title || 'untitled-video');
         const thumbnailFileName = `${videoSlug}-${video.id}.webp`;
-
         const outputPath = path.join(optimizedThumbnailsDir, thumbnailFileName);
         const relativeThumbnailPath = `${YOUR_DOMAIN}/${OPTIMIZED_IMAGES_SUBDIR}/${thumbnailFileName}`;
 
-        try {
-            if (video.thumbnail) {
-                let inputBuffer;
+        let finalThumbnailUrl = null;
+        let finalWidth = DEFAULT_FALLBACK_WIDTH;
+        let finalHeight = DEFAULT_FALLBACK_HEIGHT;
 
-                if (video.thumbnail.startsWith('http')) {
-                    const response = await fetch(video.thumbnail);
-                    if (!response.ok) {
-                        throw new Error(`Failed to download thumbnail: ${response.statusText}`);
-                    }
-                    inputBuffer = Buffer.from(await response.arrayBuffer());
-                }
-                else {
-                    const localInputPath = path.join(publicDir, video.thumbnail);
-                    try {
-                        await fs.access(localInputPath);
-                        inputBuffer = await fs.readFile(localInputPath);
-                        // console.log(`Using local thumbnail for ${video.title}: ${localInputPath}`); // Dihapus
-                    } catch (localFileError) {
-                        console.error(`[ERROR] Local thumbnail file not found for ${video.title}: ${localFileError.message}`);
-                        throw new Error(`Local thumbnail not found or accessible: ${localFileError.message}`);
-                    }
-                }
-
-                const optimizedBuffer = await sharp(inputBuffer)
-                    .resize({ width: OPTIMIZED_THUMBNAIL_WIDTH, withoutEnlargement: true })
-                    .webp({ quality: 70 })
-                    .toBuffer();
-
-                const optimizedMetadata = await sharp(optimizedBuffer).metadata();
-                const finalWidth = optimizedMetadata.width || DEFAULT_FALLBACK_WIDTH;
-                const finalHeight = optimizedMetadata.height || DEFAULT_FALLBACK_HEIGHT;
-
-                await fs.writeFile(outputPath, optimizedBuffer);
-
-                processedVideos.push({
-                    ...video,
-                    thumbnail: relativeThumbnailPath,
-                    thumbnailWidth: finalWidth,
-                    thumbnailHeight: finalHeight,
-                });
-
-            } else {
-                console.warn(`No thumbnail URL found for video: ${video.title}. Using placeholder.`);
-                processedVideos.push({
-                    ...video,
-                    thumbnail: PLACEHOLDER_THUMBNAIL_PATH,
-                    thumbnailWidth: DEFAULT_FALLBACK_WIDTH,
-                    thumbnailHeight: DEFAULT_FALLBACK_HEIGHT,
-                });
-            }
-        } catch (error) {
-            console.error(`Error processing thumbnail for video ${video.id} (${video.title}):`, error.message);
-            processedVideos.push({
+        if (!video.thumbnail) {
+            return {
                 ...video,
-                thumbnail: PLACEHOLDER_THUMBNAIL_PATH,
+                thumbnail: null,
                 thumbnailWidth: DEFAULT_FALLBACK_WIDTH,
                 thumbnailHeight: DEFAULT_FALLBACK_HEIGHT,
-            });
+            };
         }
-    }
+
+        let thumbnailOptimizedSuccessfully = false;
+
+        const attemptOptimizeAndSave = async (urlOrPath, isRemote) => {
+            let buffer = null;
+            if (isRemote) {
+                const response = await fetchWithTimeout(urlOrPath);
+                if (!response.ok) {
+                    throw new Error(`Failed to download: ${response.statusText}`);
+                }
+                buffer = Buffer.from(await response.arrayBuffer());
+            } else {
+                const localFilePath = path.join(publicDir, urlOrPath);
+                await fs.access(localFilePath);
+                buffer = await fs.readFile(localFilePath);
+            }
+
+            const optimizedBuffer = await sharp(buffer)
+                .resize({ width: OPTIMIZED_THUMBNAIL_WIDTH, withoutEnlargement: true })
+                .webp({ quality: 70 })
+                .toBuffer();
+
+            const optimizedMetadata = await sharp(optimizedBuffer).metadata();
+            finalWidth = optimizedMetadata.width || DEFAULT_FALLBACK_WIDTH;
+            finalHeight = optimizedMetadata.height || DEFAULT_FALLBACK_HEIGHT;
+
+            await fs.writeFile(outputPath, optimizedBuffer);
+            finalThumbnailUrl = relativeThumbnailPath;
+            return true;
+        };
+
+        // --- Attempt 1: Try original thumbnail URL/path for optimization ---
+        try {
+            thumbnailOptimizedSuccessfully = await attemptOptimizeAndSave(
+                video.thumbnail,
+                video.thumbnail.startsWith('http')
+            );
+        } catch (error) {
+        }
+
+        // --- Attempt 2: If original failed and it's a Doodcdn URL, try the opposite type ---
+        if (!thumbnailOptimizedSuccessfully && video.thumbnail.includes('postercdn.com')) {
+            let altDoodcdnUrl = null;
+
+            if (video.thumbnail.includes('/snaps/')) {
+                altDoodcdnUrl = video.thumbnail.replace('/snaps/', '/snaps/');
+            } else if (video.thumbnail.includes('/snaps/')) {
+                altDoodcdnUrl = video.thumbnail.replace('/snaps/', '/splash/');
+            }
+            
+            if (altDoodcdnUrl) {
+                try {
+                    thumbnailOptimizedSuccessfully = await attemptOptimizeAndSave(altDoodcdnUrl, true);
+                } catch (error) {
+                  console.error(`[ERROR] thumbnail gagal untuk ${video.id} (${video.title}).`);
+                }
+            }
+        }
+        
+        // --- Final Fallback: Use original URL/path directly if all optimization attempts failed ---
+        if (!thumbnailOptimizedSuccessfully) {
+            if (video.thumbnail.startsWith('http')) {
+                finalThumbnailUrl = video.thumbnail;
+            } else {
+                const localInputPath = path.join(publicDir, video.thumbnail);
+                try {
+                    await fs.access(localInputPath);
+                    finalThumbnailUrl = video.thumbnail;
+                } catch (err) {
+                    console.error(`[ERROR] All thumbnail attempts failed for video ${video.id} (${video.title}). Original local file not found at ${localInputPath}. Thumbnail will be null.`);
+                    finalThumbnailUrl = null;
+                }
+            }
+        }
+
+        return {
+            ...video,
+            thumbnail: finalThumbnailUrl,
+            thumbnailWidth: finalWidth,
+            thumbnailHeight: finalHeight,
+        };
+    });
+
+    const processedVideos = await Promise.all(processingPromises);
 
     const outputContent = `import type { VideoData } from '../utils/data';\n\nconst allVideos: VideoData[] = ${JSON.stringify(processedVideos, null, 2)};\n\nexport default allVideos;\n`;
     await fs.writeFile(OUTPUT_TS_PATH, outputContent, 'utf-8');
